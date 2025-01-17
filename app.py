@@ -7,8 +7,10 @@ import os
 import json
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = '2d9c6d8940c84d3fb82e974f9a03b487a6e4ca3d7b594432'  # Secure random key
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///lostfound.db'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', '2d9c6d8940c84d3fb82e974f9a03b487a6e4ca3d7b594432')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///lostfound.db')
+if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgres://'):
+    app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('postgres://', 'postgresql://', 1)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -379,4 +381,4 @@ if __name__ == '__main__':
                 db.session.rollback()
                 print("Error creating admin user:", e)
     
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000)
