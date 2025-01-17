@@ -8,9 +8,13 @@ import json
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', '2d9c6d8940c84d3fb82e974f9a03b487a6e4ca3d7b594432')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///lostfound.db')
-if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgres://'):
-    app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('postgres://', 'postgresql://', 1)
+
+# Database configuration
+database_url = os.getenv('DATABASE_URL', 'sqlite:///lostfound.db')
+if database_url.startswith('postgres://'):
+    database_url = database_url.replace('postgres://', 'postgresql://', 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -382,3 +386,24 @@ if __name__ == '__main__':
                 print("Error creating admin user:", e)
     
     app.run(host='0.0.0.0', port=5000)
+else:
+    # Initialize database for production
+    with app.app_context():
+        db.create_all()
+        # Create admin user if it doesn't exist
+        admin_email = "admin@kongu.edu"
+        admin = User.query.filter_by(email=admin_email).first()
+        if not admin:
+            admin = User(
+                name="Admin",
+                email=admin_email,
+                password="admin123",
+                role="admin"
+            )
+            db.session.add(admin)
+            try:
+                db.session.commit()
+                print("Admin user created successfully!")
+            except Exception as e:
+                db.session.rollback()
+                print("Error creating admin user:", e)
